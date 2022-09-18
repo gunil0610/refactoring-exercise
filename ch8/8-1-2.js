@@ -6,16 +6,9 @@ export class Account {
 
   get bankCharge() {
     let result = 4.5;
-    if (this._daysOverdrawn > 0) result += this.overdraftCharge;
+    if (this._daysOverdrawn > 0)
+      result += this.type.overdraftCharge(this.daysOverdrawn);
     return result;
-  }
-
-  get overdraftCharge() {
-    if (this.type.isPremium) {
-      const baseCharge = 10;
-      if (this._daysOverdrawn <= 7) return baseCharge;
-      else return baseCharge + (this._daysOverdrawn - 7) * 0.85;
-    } else return this._daysOverdrawn * 1.75;
   }
 
   get daysOverdrawn() {
@@ -28,6 +21,19 @@ export class AccountType {
     this._type = type;
   }
   get isPremium() {
-    return this._type === 'Premium';
+    return this._type === "Premium";
+  }
+
+  overdraftCharge(daysOverdrawn) {
+    if (this.isPremium) {
+      const baseCharge = 10;
+      if (daysOverdrawn <= 7) {
+        return baseCharge;
+      } else {
+        return baseCharge + (daysOverdrawn - 7) * 0.85;
+      }
+    } else {
+      return daysOverdrawn * 1.75;
+    }
   }
 }
