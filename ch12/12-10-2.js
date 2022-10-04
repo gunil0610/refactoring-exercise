@@ -1,28 +1,50 @@
-function createBird(bird) {
-  switch (bird.type) {
-    case '유럽 제비':
-      return new EuropeanSwallow(bird);
-    case '아프리카 제비':
-      return new AfricanSwallow(bird);
-    case '노르웨이 파랑 앵무':
-      return new NorwegianBlueParrot(bird);
-    default:
-      return new Bird(bird);
-  }
+function createBird(data) {
+  return new Bird(data);
 }
 
 class Bird {
+  #name;
+  #plumage;
+  #speciesDelegate;
   constructor(data) {
-    this._name = data.name;
-    this._plumage = data.plumage;
+    this.#name = data.name;
+    this.#plumage = data.plumage;
+    this.#speciesDelegate = this.selectSpeciesDelegate(data);
   }
 
   get name() {
-    return this._name;
+    return this.#name;
   }
 
   get plumage() {
-    return this._plumage || '보통이다';
+    return this.#speciesDelegate.plumage;
+  }
+
+  get airSpeedVelocity() {
+    return this.#speciesDelegate.airSpeedVelocity;
+  }
+
+  selectSpeciesDelegate(data) {
+    switch (data.type) {
+      case "유럽 제비":
+        return new EuropeanSwallowDelegate(data, this);
+      case "아프리카 제비":
+        return new AfricanSwallowDelegate(data, this);
+      case "노르웨이 파랑 앵무":
+        return new NorwegianBlueParrotDelegate(data, this);
+      default:
+        return new SpeciesDelegate(data, this);
+    }
+  }
+}
+class SpeciesDelegate {
+  #bird;
+  constructor(data, bird) {
+    this.#bird = bird;
+  }
+
+  get plumage() {
+    return this.#bird.#plumage || "보통이다";
   }
 
   get airSpeedVelocity() {
@@ -30,41 +52,44 @@ class Bird {
   }
 }
 
-class EuropeanSwallow extends Bird {
+class EuropeanSwallowDelegate extends SpeciesDelegate {
   get airSpeedVelocity() {
     return 35;
   }
 }
 
-class AfricanSwallow extends Bird {
-  constructor(data) {
-    super(data);
+class AfricanSwallowDelegate extends SpeciesDelegate {
+  #numberOfCoconuts;
+  constructor(data, bird) {
+    super(data, bird);
 
-    this._numberOfCoconuts = data.numberOfCoconuts;
+    this.#numberOfCoconuts = data.numberOfCoconuts;
   }
 
   get airSpeedVelocity() {
-    return 40 - 2 * this._numberOfCoconuts;
+    return 40 - 2 * this.#numberOfCoconuts;
   }
 }
 
-class NorwegianBlueParrot extends Bird {
-  constructor(data) {
-    super(data);
+class NorwegianBlueParrotDelegate extends SpeciesDelegate {
+  #voltage;
+  #isNailed;
+  constructor(data, bird) {
+    super(data, bird);
 
-    this._voltage = data.voltage;
-    this._isNailed = data.isNailed;
+    this.#voltage = data.voltage;
+    this.#isNailed = data.isNailed;
   }
 
   get plumage() {
-    if (this._voltage > 100) {
-      return '그을렸다';
+    if (this.#voltage > 100) {
+      return "그을렸다";
     } else {
-      return this._plumage || '예쁘다';
+      return this.#plumage || "예쁘다";
     }
   }
 
   get airSpeedVelocity() {
-    return this._isNailed ? 0 : 10 + this._voltage / 10;
+    return this.#isNailed ? 0 : 10 + this.#voltage / 10;
   }
 }
