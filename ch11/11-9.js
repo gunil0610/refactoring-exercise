@@ -1,5 +1,5 @@
 export function score(candidate, medicalExam, scoringGuide) {
-  return new Scorer(candidate, medicalExam, scoringGuide);
+  return new Scorer(candidate, medicalExam, scoringGuide).execute();
 }
 
 class Scorer {

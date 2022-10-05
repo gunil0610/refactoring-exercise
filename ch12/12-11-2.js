@@ -18,14 +18,23 @@ class CatalogItem {
   }
 }
 
-class Scroll extends CatalogItem {
-  constructor(id, title, tags, dataLastCleaned) {
-    super(id, title, tags);
+class Scroll {
+  constructor(id, dataLastCleaned, catalogItem) {
+    this._id = id;
+    this._catalogItem = catalogItem;
     this._lastCleaned = dataLastCleaned;
   }
 
+  get id() {
+    return this._id;
+  }
+
+  get title() {
+    return this._title;
+  }
+
   needsCleaning(targetDate) {
-    const threshold = this.hasTag('revered') ? 700 : 1500;
+    const threshold = this.hasTag("revered") ? 700 : 1500;
 
     return this.daysSinceLastCleaning(targetDate) > threshold;
   }
