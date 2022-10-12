@@ -14,35 +14,47 @@ class Performance {
     return this.#audience;
   }
 
-  get amount() {
-    switch (this.#play.type) {
+  static create(audience, play) {
+    switch (play.type) {
       case "tragedy": // 비극
-        return this.#audience > 30
-          ? 40000 + 1000 * (this.#audience - 30)
-          : 40000;
-
+        return new Tragedy(audience, play);
       case "comedy": // 희극
-        return this.#audience > 20
-          ? 30000 + 800 * this.#audience
-          : 30000 + 300 * this.#audience;
-
+        return new Comedy(audience, play);
       default:
-        throw new Error(`알 수 없는 장르: ${performance.play.type}`);
+        throw new Error(`알 수 없는 장르: ${play.type}`);
     }
+  }
+}
+
+class Tragedy extends Performance {
+  get amount() {
+    const base = 40000;
+    return this.audience > 30 ? base + 1000 * (this.audience - 30) : base;
   }
 
   get credits() {
-    return this.#play.type === "comedy"
-      ? Math.max(this.#audience - 30, 0) + Math.floor(this.#audience / 5)
-      : Math.max(this.#audience - 30, 0);
+    return Math.max(this.audience - 30, 0);
+  }
+}
+
+class Comedy extends Performance {
+  get amount() {
+    const base = 30000;
+    return this.audience > 20
+      ? base + 800 * this.audience
+      : base + 300 * this.audience;
+  }
+
+  get credits() {
+    return Math.max(this.audience - 30, 0) + Math.floor(this.audience / 5);
   }
 }
 
 export function createStatement(invoice, plays) {
   const statement = {};
   statement.customer = invoice.customer;
-  statement.performances = invoice.performances.map(
-    (p) => new Performance(p.audience, plays[p.playID])
+  statement.performances = invoice.performances.map((p) =>
+    Performance.create(p.audience, plays[p.playID])
   );
   statement.totalAmount = totalAmount(statement.performances);
   statement.totalCredits = totalCredits(statement.performances);
