@@ -1,8 +1,26 @@
 import { createStatement } from "./createStatement";
 
 export function statement(invoice, plays) {
-  const statement = createStatement(invoice, plays);
-  return renderPlainText(statement);
+  return renderPlainText(createStatement(invoice, plays));
+}
+
+export function htmlStatement(invoice, plays) {
+  return renderHTML(createStatement(invoice, plays));
+}
+
+function renderHTML(statement) {
+  let result = `<h1>청구 내역 (고객명: ${statement.customer})</h1>\n`;
+  result += "<table>\n";
+  result += "<tr><th>play</th><th>석</th><th>cost</th></tr>";
+
+  for (let perf of statement.performances) {
+    result += `  <tr><td>${perf.play.name}</td><td>${perf.audience}</td>`;
+    result += `<td>${usd(perf.amount / 100)}</td></tr>\n`;
+  }
+  result += "</table>\n";
+  result += `<p>총액: <em>${usd(statement.totalAmount / 100)}</em></p>\n`;
+  result += `<p>적립 포인트: <em>${statement.totalCredits}</em>점</p>\n`;
+  return result;
 }
 
 function renderPlainText(statement) {
