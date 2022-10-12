@@ -9,36 +9,25 @@ function usd(number) {
 export function statement(invoice, plays) {
   const statement = {};
   statement.customer = invoice.customer;
-  statement.performances = invoice.performances;
-  return renderPlainText(statement, plays);
-}
+  statement.performances = invoice.performances.map(enrichPerformance);
+  statement.totalAmount = totalAmount(statement.performances);
+  statement.totalCredits = totalCredits(statement.performances);
+  return renderPlainText(statement);
 
-function renderPlainText(statement, plays) {
-  let result = `청구 내역 (고객명: ${statement.customer})\n`;
-
-  for (let perf of statement.performances) {
-    result += `  ${playFor(perf).name}: ${usd(amountFor(perf) / 100)} (${
-      perf.audience
-    }석)\n`;
+  function enrichPerformance(performance) {
+    const result = { ...performance };
+    result.play = playFor(performance);
+    result.amount = amountFor(result);
+    result.credits = creditsFor(result);
+    return result;
   }
-
-  result += `총액: ${usd(totalAmount() / 100)}\n`;
-  result += `적립 포인트: ${totalCredits()}점\n`;
-  return result;
 
   function playFor(performance) {
     return plays[performance.playID];
   }
 
-  function creditsFor(performance) {
-    return playFor(performance).type === "comedy"
-      ? Math.max(performance.audience - 30, 0) +
-          Math.floor(performance.audience / 5)
-      : Math.max(performance.audience - 30, 0);
-  }
-
   function amountFor(performance) {
-    switch (playFor(performance).type) {
+    switch (performance.play.type) {
       case "tragedy": // 비극
         return performance.audience > 30
           ? 40000 + 1000 * (performance.audience - 30)
@@ -50,87 +39,38 @@ function renderPlainText(statement, plays) {
           : 30000 + 300 * performance.audience;
 
       default:
-        throw new Error(`알 수 없는 장르: ${playFor(performance).type}`);
+        throw new Error(`알 수 없는 장르: ${performance.play.type}`);
     }
   }
 
-  function totalAmount() {
-    return statement.performances.reduce((sum, p) => sum + amountFor(p), 0);
-  }
-
-  function totalCredits() {
-    return statement.performances.reduce((sum, p) => sum + creditsFor(p), 0);
-  }
-}
-
-class Statement {
-  #customer;
-  #performances;
-  #plays;
-  #result;
-
-  constructor(invoice, plays) {
-    this.#customer = invoice.customer;
-    this.#performances = invoice.performances;
-    this.#plays = plays;
-  }
-
-  playFor(performance) {
-    return this.#plays[performance.playID];
-  }
-
-  creditsFor(performance) {
-    return this.playFor(performance).type === "comedy"
+  function creditsFor(performance) {
+    return performance.play.type === "comedy"
       ? Math.max(performance.audience - 30, 0) +
           Math.floor(performance.audience / 5)
       : Math.max(performance.audience - 30, 0);
   }
 
-  amountFor(performance) {
-    let result = 0;
-    switch (this.playFor(performance).type) {
-      case "tragedy": // 비극
-        result =
-          performance.audience > 30
-            ? 40000 + 1000 * (performance.audience - 30)
-            : 40000;
-        break;
-      case "comedy": // 희극
-        result =
-          performance.audience > 20
-            ? 30000 + 800 * performance.audience
-            : 30000 + 300 * performance.audience;
-        break;
-      default:
-        throw new Error(`알 수 없는 장르: ${this.playFor(performance).type}`);
-    }
-    return result;
+  function totalAmount(performances) {
+    return performances.reduce((sum, p) => (sum += p.amount), 0);
   }
 
-  get totalAmount() {
-    return this.#performances.reduce((sum, p) => sum + this.amountFor(p), 0);
+  function totalCredits(performances) {
+    return performances.reduce((sum, p) => (sum += p.credits), 0);
+  }
+}
+
+function renderPlainText(statement) {
+  let result = `청구 내역 (고객명: ${statement.customer})\n`;
+
+  for (let perf of statement.performances) {
+    result += `  ${perf.play.name}: ${usd(perf.amount / 100)} (${
+      perf.audience
+    }석)\n`;
   }
 
-  get totalCredits() {
-    return this.#performances.reduce((sum, p) => sum + this.creditsFor(p), 0);
-  }
-
-  print() {
-    this.#result = `청구 내역 (고객명: ${this.#customer})\n`;
-    this.#performances.forEach((perf) => {
-      // 청구 내역을 출력한다.
-      this.#result += `  ${this.playFor(perf).name}: ${usd(
-        this.amountFor(perf) / 100
-      )} (${perf.audience}석)\n`;
-    });
-    this.#result += `총액: ${usd(this.totalAmount / 100)}\n`;
-    this.#result += `적립 포인트: ${this.totalCredits}점\n`;
-    return this.#result;
-  }
-
-  printHtml() {
-    this.#result = `<h1>청구 내역 (고객명: ${this.#customer})</h1>`;
-  }
+  result += `총액: ${usd(statement.totalAmount / 100)}\n`;
+  result += `적립 포인트: ${statement.totalCredits}점\n`;
+  return result;
 }
 
 // 사용예:
@@ -160,7 +100,6 @@ const invoicesJSON = [
   },
 ];
 
-const result2 = new Statement(invoicesJSON[0], playsJSON);
 const result = statement(invoicesJSON[0], playsJSON);
 const expected =
   "청구 내역 (고객명: BigCo)\n" +
@@ -171,5 +110,3 @@ const expected =
   "적립 포인트: 47점\n";
 console.log(result);
 console.log(result === expected);
-console.log(result2.print());
-console.log(result2.print() === expected);
